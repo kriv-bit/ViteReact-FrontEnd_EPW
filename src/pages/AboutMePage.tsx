@@ -105,7 +105,7 @@ export default function AboutMePage() {
                   <span className="uppercase tracking-wider">2005</span>
                 </li>
                 <li className="flex items-center gap-4 border-b-2 border-black pb-2">
-                  <span className="font-mono">ARIES</span>
+                  <span className="font-mono">AriES</span>
                   <span className="ml-auto font-black">VEGANO</span>
                 </li>
                 <li className="flex items-center gap-4">
