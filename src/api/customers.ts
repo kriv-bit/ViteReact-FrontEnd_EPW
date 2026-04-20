@@ -17,9 +17,6 @@ export const customersApi = {
   create: (dto: CreateCustomerDto) =>
     http<Customer>("/customers", { method: "POST", body: JSON.stringify(dto) }),
   update: (id: number, dto: UpdateCustomerDto) =>
-    http<Customer>(`/customers/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(dto),
-    }),
+    http<Customer>(`/customers/${id}`, {method: "PUT",body: JSON.stringify(dto)}),
   remove: (id: number) => http<void>(`/customers/${id}`, { method: "DELETE" }),
 };

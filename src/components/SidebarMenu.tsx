@@ -27,6 +27,22 @@ export default function SidebarMenu({ current, onChange }: Props) {
         >
           Departments
         </button>
+        <button
+          className={`text-left p-2 rounded ${
+            current === "test" ? "bg-black text-white" : "hover:bg-gray-100"
+          }`}
+          onClick={() => onChange("test")}
+        >
+          Prueba
+        </button>
+        <button
+          className={`text-left p-2 rounded ${
+            current === "abtme" ? "bg-black text-white" : "hover:bg-gray-100"
+          }`}
+          onClick={() => onChange("abtme")}
+        >
+          About Me
+        </button>
       </nav>
     </div>
   );
