@@ -3,17 +3,11 @@ import { useState } from "react";
 type Props = {
   current: string;
   onChange: (page: string) => void;
+  menuOptions: { name: string; content: string }[]; // 👈 Esto es un array, no una tupla
 };
 
-export default function SidebarMenu({ current, onChange }: Props) {
+export default function SidebarMenu({ current, onChange, menuOptions }: Props) {
   // El estado se define DENTRO del componente
-  const [menuOptions] = useState([
-    { name: "customers", content: "Customers" },
-    { name: "departments", content: "Departments" },
-    { name: "test", content: "Prueba" },
-    { name: "abtme", content: "About Me" },
-  ]);
-
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold">MiniPOS</h2>

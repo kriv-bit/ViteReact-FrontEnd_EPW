@@ -11,6 +11,13 @@ import SidebarMenu from "./components/SidebarMenu";
 
 function App() {
   const [page, setPage] = useState("customers");
+  const [menuOptions] = useState([
+    { name: "customers", content: "Customers" },
+    { name: "departments", content: "Departments" },
+    { name: "test", content: "Prueba" },
+    { name: "abtme", content: "About Me" },
+    { name: "log-out", content: "Log Out" },
+  ]);
   function renderContent() {
     switch (page) {
       case "customers":
@@ -27,7 +34,10 @@ function App() {
   }
   return (
     <MainLayout
-      sidebar={<SidebarMenu current={page} onChange={setPage} />}
+      sidebar={<SidebarMenu current={page} 
+      onChange={setPage} 
+      menuOptions={menuOptions} 
+      />}
       content={renderContent()}
     />
   );
