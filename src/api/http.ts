@@ -1,18 +1,27 @@
-export const API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
-// Token de autenticación global (se configura desde App.tsx)
+// Token de autenticación global (se sincroniza con localStorage)
 let authToken: string | null = null;
 
 /**
- * Configura el token JWT que se incluirá en todas las peticiones http()
- * Pasar null para limpiar el token (logout)
+ * Configura el token JWT que se incluirá en todas las peticiones http().
+ * También lo persiste en localStorage para que sobreviva a recargas.
+ * Pasar null para limpiar el token (logout).
  */
 export function setAuthToken(token: string | null) {
   console.log(
     "[http.ts] setAuthToken llamado con:",
     token ? token.slice(0, 20) + "..." : "null",
   );
+
   authToken = token;
+
+  // Sincronizar con localStorage (persistencia al estilo del profe)
+  if (token) {
+    localStorage.setItem("token", token);
+  } else {
+    localStorage.removeItem("token");
+  }
 }
 
 /**
@@ -22,20 +31,34 @@ export function getAuthToken(): string | null {
   return authToken;
 }
 
+/**
+ * Inicializa el token global desde localStorage (útil al cargar la app).
+ * Se llama una vez desde App.tsx cuando se restaura la sesión.
+ */
+export function restoreTokenFromStorage(): string | null {
+  const stored = localStorage.getItem("token");
+  if (stored) {
+    authToken = stored;
+    console.log("[http.ts] Token restaurado desde localStorage ✅");
+  }
+  return authToken;
+}
+
 export async function http<T>(path: string, options?: RequestInit): Promise<T> {
   // Construimos los headers base
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  // Si hay token, lo agregamos al header Authorization
-  if (authToken) {
-    headers["Authorization"] = `Bearer ${authToken}`;
+  // Si hay token (global o en localStorage), lo agregamos al header Authorization
+  const token = authToken ?? localStorage.getItem("token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
     console.log(
-      `[http.ts] ➡️ GET ${path} — Token incluido: ${authToken.slice(0, 20)}...`,
+      `[http.ts] ➡️ ${options?.method ?? "GET"} ${path} — Token incluido: ${token.slice(0, 20)}...`,
     );
   } else {
-    console.log(`[http.ts] ⚠️ GET ${path} — SIN TOKEN`);
+    console.log(`[http.ts] ⚠️ ${options?.method ?? "GET"} ${path} — SIN TOKEN`);
   }
 
   // Merge con headers adicionales que vengan en options
@@ -47,6 +70,15 @@ export async function http<T>(path: string, options?: RequestInit): Promise<T> {
     headers,
     ...options,
   });
+
+  // Si el servidor responde 401, el token expiró → limpiar sesión
+  if (res.status === 401) {
+    console.error("[http.ts] ❌ 401 Unauthorized — Sesión expirada");
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    authToken = null;
+    throw new Error("Sesión expirada");
+  }
 
   if (!res.ok) {
     const msg = await res.text();
