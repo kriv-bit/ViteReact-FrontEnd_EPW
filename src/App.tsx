@@ -14,22 +14,15 @@ import { menuApi } from "./api/menu";
 import { useMenuOptions } from "./api/menu.queries";
 // Contexto de autenticación (del profe)
 import { useAuth } from "./context/AuthContext";
+// Protección de rutas y Login (del profe)
+import LoginPage from "./pages/LoginPage";
+import PrivateRoute from "./components/PrivateRoute";
 
 // Mapeo de rol (string) a roleId (número)
 const ROLE_TO_ID: Record<string, number> = {
   ADMIN: 1,
   CUSTOMER: 2,
   PROVIDER: 3,
-};
-
-// Credenciales fijas para cada botón de ingreso rápido
-const LOGIN_CREDENTIALS: Record<
-  string,
-  { username: string; password: string }
-> = {
-  admin: { username: "admin_user", password: "123" },
-  customer: { username: "customer_user", password: "123" },
-  provider: { username: "provider_user", password: "123" },
 };
 
 function App() {
@@ -45,11 +38,7 @@ function App() {
     }
     return null;
   });
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  // ─── Estado de la página actual ──────────────────────
-  const [page, setPage] = useState("abtme");
+  const [page, setPage] = useState("customers");
 
   // ─── Sincronizar token global al restaurar sesión ────
   useEffect(() => {
@@ -58,7 +47,7 @@ function App() {
       restoreTokenFromStorage();
       console.log("[App] Token global restaurado desde localStorage ✅");
     }
-  }, []); // Solo al montar (no necesita dependencias, lee directo de localStorage)
+  }, []);
 
   // ─── Hook: carga las opciones de menú SOLO si hay roleId ─
   const {
@@ -68,17 +57,11 @@ function App() {
     error: menuErrorObj,
   } = useMenuOptions(roleId);
 
-  // ─── Handlers ────────────────────────────────────────
-  const handleLogin = useCallback(
-    async (role: string) => {
-      const creds = LOGIN_CREDENTIALS[role];
-      if (!creds) return;
-
-      setIsLoggingIn(true);
-      setLoginError(null);
-
+  // ─── Handler llamado por LoginPage tras login exitoso ──
+  const handleLoginSuccess = useCallback(
+    async (username: string, password: string) => {
       try {
-        const res = await menuApi.login(creds.username, creds.password);
+        const res = await menuApi.login(username, password);
 
         console.log("[App] Login exitoso:", {
           username: res.username,
@@ -88,7 +71,6 @@ function App() {
 
         // 1. Configurar el token global (para http())
         setAuthToken(res.token);
-        console.log("[App] Token configurado globalmente ✅");
 
         // 2. Actualizar AuthContext (persiste en localStorage)
         authLogin(res.token, res.username, res.role);
@@ -102,28 +84,22 @@ function App() {
           console.warn("[App] ⚠️ Rol no encontrado en ROLE_TO_ID:", res.role);
         }
 
-        setPage("abtme");
-      } catch (err: any) {
+        setPage("customers");
+      } catch (err) {
         console.error("[App] Error en login:", err);
-        setLoginError(err.message || "Error al iniciar sesión");
-      } finally {
-        setIsLoggingIn(false);
+        // Relanzar para que LoginPage maneje el error
+        throw err;
       }
     },
     [authLogin],
   );
 
+  // ─── Handler: cierre de sesión ───────────────────────
   const handleLogout = useCallback(() => {
-    // 1. Limpiar el token global
     setAuthToken(null);
-
-    // 2. Actualizar AuthContext (limpia localStorage)
     authLogout();
-
-    // 3. Limpiar estado local
     setRoleId(null);
-    setLoginError(null);
-    setPage("abtme");
+    setPage("customers");
   }, [authLogout]);
 
   // ─── Render de contenido según la página ─────────────
@@ -135,7 +111,6 @@ function App() {
         return <DepartamentPage />;
       case "providers":
       case "users":
-        // Placeholder: mientras no existan esas páginas
         return (
           <div className="flex items-center justify-center h-64 text-slate-400 text-xl">
             {page === "providers" ? "Providers" : "Usuarios"} — Próximamente
@@ -144,35 +119,36 @@ function App() {
       case "test":
         return <TestMenuOptionPage />;
       case "abtme":
+        return <AboutMePage />;
       default:
         return <AboutMePage />;
     }
   }
 
+  // ─── Render de la app (protegida por PrivateRoute) ───
   return (
-    <MainLayout
-      sidebar={
-        <SidebarMenu
-          current={page}
-          onChange={setPage}
-          token={user?.token ?? null}
-          username={user?.username ?? null}
-          menuOptions={menuOptions}
-          menuLoading={menuLoading}
-          menuError={menuError}
-          menuErrorMsg={
-            menuErrorObj instanceof Error
-              ? menuErrorObj.message
-              : String(menuErrorObj ?? "")
-          }
-          loginError={loginError}
-          isLoggingIn={isLoggingIn}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-        />
-      }
-      content={renderContent()}
-    />
+    <PrivateRoute fallback={<LoginPage onLogin={handleLoginSuccess} />}>
+      <MainLayout
+        sidebar={
+          <SidebarMenu
+            current={page}
+            onChange={setPage}
+            token={user?.token ?? null}
+            username={user?.username ?? null}
+            menuOptions={menuOptions}
+            menuLoading={menuLoading}
+            menuError={menuError}
+            menuErrorMsg={
+              menuErrorObj instanceof Error
+                ? menuErrorObj.message
+                : String(menuErrorObj ?? "")
+            }
+            onLogout={handleLogout}
+          />
+        }
+        content={renderContent()}
+      />
+    </PrivateRoute>
   );
 }
 
