@@ -4,6 +4,7 @@ import CustomersPage from "./pages/CustomersPage";
 import DepartamentPage from "./pages/DepartamentPage";
 import TestMenuOptionPage from "./pages/TestMenuOptionPage";
 import AboutMePage from "./pages/AboutMePage";
+import DashBoardPage from "./pages/DashBoardPage";
 // Organizador de la interfaz
 import MainLayout from "./layouts/MainLayout";
 // Contenedor del menú
@@ -110,10 +111,12 @@ function App() {
       case "departments":
         return <DepartamentPage />;
       case "providers":
+      case "dashboard":
+        return <DashBoardPage />;
       case "users":
         return (
           <div className="flex items-center justify-center h-64 text-slate-400 text-xl">
-            {page === "providers" ? "Providers" : "Usuarios"} — Próximamente
+            Próximamente
           </div>
         );
       case "test":
